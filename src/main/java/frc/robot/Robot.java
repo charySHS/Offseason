@@ -30,6 +30,7 @@ import org.littletonrobotics.junction.networktables.NT4Publisher;
 import org.littletonrobotics.junction.wpilog.WPILOGWriter;
 
 import frc.robot.Limelight.Limelight;
+import friarLib2.utility.NT4PublisherNoFMS;
 
 /**
  * The VM is configured to automatically run this class, and to call the functions corresponding to

@@ -7,6 +7,8 @@ package frc.robot;
 import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Commands;
 
+import frc.robot.Constants.FeatureFlags;
+
 public class RobotContainer {
   public RobotContainer() {
     configureBindings();
