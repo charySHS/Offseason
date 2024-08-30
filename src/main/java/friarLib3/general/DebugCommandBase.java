@@ -1,4 +1,4 @@
-package friarLib2.general;
+package friarLib3.general;
 
 import edu.wpi.first.wpilibj2.command.Command;
 import frc.robot.Constants;

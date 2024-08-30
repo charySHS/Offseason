@@ -1,11 +1,8 @@
-package friarLib2.math;
+package friarLib3.math;
 
-import java.awt.*;
 import java.awt.geom.Point2D;
-import java.sql.Array;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.concurrent.locks.Condition;
 
 public class LookupTable {
 

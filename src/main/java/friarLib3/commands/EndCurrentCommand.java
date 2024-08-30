@@ -1,8 +1,8 @@
-package friarLib2.commands;
+package friarLib3.commands;
 
 import edu.wpi.first.wpilibj2.command.Command;
 
-import friarLib2.general.DebugCommandBase;
+import friarLib3.general.DebugCommandBase;
 
 public class EndCurrentCommand extends DebugCommandBase {
 

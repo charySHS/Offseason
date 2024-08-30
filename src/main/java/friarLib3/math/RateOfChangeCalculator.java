@@ -1,4 +1,4 @@
-package friarLib2.math;
+package friarLib3.math;
 
 import edu.wpi.first.wpilibj.Timer;
 

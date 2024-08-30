@@ -7,7 +7,7 @@ import edu.wpi.first.math.trajectory.TrapezoidProfile;
 
 import com.pathplanner.lib.util.PIDConstants;
 
-import friarLib2.utility.PIDParameters;
+import friarLib3.utility.PIDParameters;
 
 public final class Constants {
 
@@ -44,6 +44,11 @@ public final class Constants {
         {
             return ordinal() + 1;
         }
+    }
+
+    public static class OperatorConstants
+    {
+        public static final int DriverControllerPort = 0;
     }
 
     /* FeatureFlags used in Robot.java */
@@ -109,8 +114,6 @@ public final class Constants {
         /******** Misc ********/
         public static final double TargetThreshold = 10;
 
-        /******** Pivot PID ********/
-        public static final PIDParameters PivotMotorPID = new PIDParameters(0, "Pivot Motor PID", 0.02, 0.0, 0.25, 0.0, 50); //everything in this is a placeholder
 
     }
 
@@ -131,6 +134,27 @@ public final class Constants {
             new TrapezoidProfile.Constraints(1.0, 2.0);
 
         public static final double ArmZeroCosineOffset = 1.342;
+
+        public static final double ArmTolerance = 15.0 / 360.0;
+
+        public static final double LowerLimit = -0.12;
+
+        public static final double UpperLimit = 0.28;
+
+        /******** Pivot PID ********/
+        public static final PIDParameters PivotMotorPID = new PIDParameters(0, "Pivot Motor PID", 0.02, 0.0, 0.25, 0.0, 50); //everything in this is a placeholder
+
+        /******** Global ********/
+        public static final double PivotTolerance = 15.0 / 360.0;
+
+        public static final double PivotLimitForward = 0.325;
+
+        public static final double PivotLimitReverse = -0.31;
+
+        // Since we zero on the hard stop, add this buffer to when going home, so we don't slam into the stop.
+        public static final double PivotLimitReverseBuffer = 0.02;
+
+        public double ManualArmControlTarget = 0;
     }
 
     public class Shooter {
