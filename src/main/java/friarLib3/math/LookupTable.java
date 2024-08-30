@@ -63,4 +63,37 @@ public class LookupTable {
 
         return FriarMath.Remap(input, Left.x, Right.x, Left.y, Right.y);
     }
+
+
+
+
+
+    static public class Normalized extends LookupTable
+    {
+        /**
+         * A version of a lookup table where all inputs must be in the range of 0 to 1
+         * When GetValue is called with a negative value, it will rotate the curve 180° around the origin such that
+         * GetValue(0.5) returns 0.5, and GetValue(-0.5) returns -0.5
+         * Automatically starts with values (0, 0) and (1, 1)
+         */
+        public Normalized()
+        {
+            AddValue(0, 0);
+            AddValue(1, 1);
+        }
+
+        @Override
+        public LookupTable AddValue(double input, double output)
+        {
+            assert input > 0 && input < 1 : "Normalized lookup tables must have their input in the range of 0 to 1";
+            return super.AddValue(input, output);
+        }
+
+        @Override
+        public double GetValue(double input)
+        {
+            var sign = input < 0 ? -1 : 1;
+            return super.GetValue(Math.abs(input)) * sign;
+        }
+    }
 }
