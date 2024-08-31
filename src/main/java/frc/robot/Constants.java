@@ -95,6 +95,11 @@ public final class Constants {
         public static final double MaxTeleopRotationalSpeed = Math.toRadians(700); // Radians/second
         public static final double MaxTeleopAcceleration = 10; // Maters/second squared
         public static final double MaxTeleopDeceleration = 11;
+
+        public static final double StickDeadband = 0.1;
+        public static final double RotationalDeadband = 0.1;
+        public static final double AzimuthStickDeadband = 0.3;
+
     }
 
     public class Intake {
@@ -133,6 +138,8 @@ public final class Constants {
         public static final TrapezoidProfile.Constraints ArmMotionConstraint =
             new TrapezoidProfile.Constraints(1.0, 2.0);
 
+        public static double ManualArmControlTarget = 0;
+
         public static final double ArmZeroCosineOffset = 1.342;
 
         public static final double ArmTolerance = 15.0 / 360.0;
@@ -153,8 +160,6 @@ public final class Constants {
 
         // Since we zero on the hard stop, add this buffer to when going home, so we don't slam into the stop.
         public static final double PivotLimitReverseBuffer = 0.02;
-
-        public double ManualArmControlTarget = 0;
     }
 
     public class Shooter {
@@ -173,6 +178,8 @@ public final class Constants {
 
         public static final boolean EasterEggEnabled = false;
 
+        public static final boolean ArmEnabled = true;
+
         public static final boolean IntakeEnabled = true;
 
         public static final boolean ShooterEnabled = true;
@@ -182,6 +189,8 @@ public final class Constants {
         public static final boolean PivotIntakeEnabled = true;
 
         public static final boolean ClimbEnabled = true;
+
+        public static final boolean IgnoringDisabled = true;
 
         // logging
         public static final boolean TuningMode = false;

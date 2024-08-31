@@ -1,4 +1,4 @@
-package frc.robot.Subsystems;
+package frc.robot.Subsystems.swerve;
 
 import com.ctre.phoenix6.configs.Slot0Configs;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
@@ -7,9 +7,10 @@ import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstantsFactory;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModule.ClosedLoopOutputType;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants.SteerFeedbackType;
 
+import com.ctre.phoenix6.mechanisms.swerve.utility.PhoenixPIDController;
+import edu.wpi.first.math.controller.PIDController;
 import edu.wpi.first.math.util.Units;
 import frc.robot.Constants;
-import frc.robot.Subsystems.Swerve;
 
 public class SwerveConstants {
     // Both sets of gains need to be tuned to your individual robot.
@@ -133,6 +134,16 @@ public class SwerveConstants {
     private static final SwerveModuleConstants BackRight = ConstantCreator.createModuleConstants(
         kBackRightSteerMotorId, kBackRightDriveMotorId, kBackRightEncoderId, kBackRightEncoderOffset, Units.inchesToMeters(kBackRightXPosInches), Units.inchesToMeters(kBackRightYPosInches), kInvertRightSide);
 
-    public static final Swerve Drivetrain = new Swerve(DrivetrainConstants, FrontLeft,
+    public static final Swerve Drivetrain = new Swerve(false, DrivetrainConstants, FrontLeft,
                                                                          FrontRight, BackLeft, BackRight);
+
+    public static final PhoenixPIDController azimuthController =
+        new PhoenixPIDController(6, 0, 0);
+
+    public static final PIDController choreoTranslationController = new PIDController(8, 0, 0);
+
+    public static final PIDController choreoRotationController =
+        new PIDController(
+            azimuthController.getP(), azimuthController.getI(), azimuthController.getD()
+        );
 }

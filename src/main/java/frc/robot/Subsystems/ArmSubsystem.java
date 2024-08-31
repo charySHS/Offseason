@@ -2,8 +2,8 @@ package frc.robot.Subsystems;
 
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Constants;
+import frc.robot.RobotContainer;
 import org.littletonrobotics.junction.Logger;
-import org.littletonrobotics.junction.AutoLog;
 import com.ctre.phoenix6.configs.*;
 import com.ctre.phoenix6.controls.*;
 import com.ctre.phoenix6.hardware.TalonFX;
@@ -12,32 +12,37 @@ import com.ctre.phoenix6.signals.InvertedValue;
 import com.ctre.phoenix6.signals.NeutralModeValue;
 
 import edu.wpi.first.math.MathUtil;
-import edu.wpi.first.wpilibj.smartdashboard.SmartDashboard;
 import edu.wpi.first.wpilibj2.command.Command;
-import edu.wpi.first.wpilibj2.command.SubsystemBase;
-
-import frc.robot.Constants.Arm.*;
-import frc.robot.RobotContainer;
 
 import friarLib3.utility.DisableSubsystem;
 import org.littletonrobotics.junction.inputs.LoggableInputs;
 
 
-public class Arm extends DisableSubsystem
+public class ArmSubsystem extends DisableSubsystem
 {
 
     LoggableInputs AutoLog;
+
+    static double manualArmControlTarget = Constants.Arm.ManualArmControlTarget;
+    static double lowerLimit = Constants.Arm.LowerLimit;
+    static double upperLimit = Constants.Arm.UpperLimit;
+    static double armTolerance = Constants.Arm.ArmTolerance;
+
+    static double pivotLimitReverse = Constants.Arm.PivotLimitReverse;
+    static double pivotLimitBuffer = Constants.Arm.PivotLimitReverseBuffer;
+    static double pivotLimitForward = Constants.Arm.PivotLimitForward;
+    static double pivotTolerance = Constants.Arm.PivotTolerance;
 
     public enum EArmPosition
     {
         Amp(0.169),
         Source(-0.05),
-        Stowed(Constants.Arm.LowerLimit),
+        Stowed(lowerLimit),
         ShootSpeaker(-0.058), // TODO: OG was -0.078; Fix why it changed
         //ShootPodium(Constants.Arm.LowerLimit),
         //ShootWing(Constants.Arm.Lowerlimit),
-        ClimbFirstPos(Constants.Arm.UpperLimit),
-        Trap(Constants.Arm.LowerLimit);
+        ClimbFirstPos(upperLimit),
+        Trap(lowerLimit);
 
         public final double Rotations;
 
@@ -48,10 +53,10 @@ public class Arm extends DisableSubsystem
     {
         Amp(0.075),
         Source(-0.237),
-        Stowed(Constants.Arm.PivotLimitReverse + Constants.Arm.PivotLimitReverseBuffer),
-        ShootSpeaker(Constants.Arm.PivotLimitReverse),
+        Stowed(pivotLimitReverse + pivotLimitBuffer),
+        ShootSpeaker(pivotLimitReverse),
         Climb(-0.25),
-        Trap(Constants.Arm.PivotLimitReverse + Constants.Arm.PivotLimitReverseBuffer),
+        Trap(pivotLimitReverse + pivotLimitBuffer),
         Unstick(-0.166);
 
         public final double Rotations;
@@ -65,14 +70,14 @@ public class Arm extends DisableSubsystem
     private TalonFX PivotMotor;
 
     private final MotionMagicExpoTorqueCurrentFOC PoseRequest =
-        new MotionMagicExpoTorqueCurrentFOC(Constants.Arm.LowerLimit)
+        new MotionMagicExpoTorqueCurrentFOC(lowerLimit)
             .withSlot(0);
     private final PositionTorqueCurrentFOC ClimbRequest =
-        new PositionTorqueCurrentFOC(Constants.Arm.LowerLimit)
+        new PositionTorqueCurrentFOC(lowerLimit)
             .withSlot(1);
     private final MotionMagicExpoTorqueCurrentFOC PivotRequest = new MotionMagicExpoTorqueCurrentFOC(0);
 
-    public Arm(boolean enabled)
+    public ArmSubsystem(boolean enabled)
     {
         super(enabled);
 
@@ -90,6 +95,8 @@ public class Arm extends DisableSubsystem
     {
         super.periodic();
         Logger.processInputs(this.getClass().getSimpleName(), AutoLog);
+        Logger.recordOutput("Arm.LeftPosition", LeftMotor.getPosition().getValue());
+        Logger.recordOutput("Arm.RightPosition", RightMotor.getPosition().getValue());
     }
 
     public double GetArmPosition() { return LeftMotor.getPosition().getValue(); }
@@ -142,13 +149,13 @@ public class Arm extends DisableSubsystem
         configs.withSoftwareLimitSwitch(
             new SoftwareLimitSwitchConfigs()
                 .withForwardSoftLimitEnable(true)
-                .withForwardSoftLimitThreshold(Constants.Arm.UpperLimit)
+                .withForwardSoftLimitThreshold(upperLimit)
                 .withReverseSoftLimitEnable(true)
-                .withReverseSoftLimitThreshold(Constants.Arm.LowerLimit));
+                .withReverseSoftLimitThreshold(lowerLimit));
 
         motor.getConfigurator().apply(configs);
 
-        motor.setPosition(Constants.Arm.LowerLimit);
+        motor.setPosition(lowerLimit);
         return motor;
 
     }
@@ -191,19 +198,23 @@ public class Arm extends DisableSubsystem
         configs.withSoftwareLimitSwitch(
             new SoftwareLimitSwitchConfigs()
                 .withForwardSoftLimitEnable(true)
-                .withForwardSoftLimitThreshold(Constants.Arm.PivotLimitForward)
+                .withForwardSoftLimitThreshold(pivotLimitForward)
                 .withReverseSoftLimitEnable(true)
-                .withReverseSoftLimitThreshold(Constants.Arm.PivotLimitReverse));
+                .withReverseSoftLimitThreshold(pivotLimitReverse));
 
         PivotMotor.getConfigurator().apply(configs);
-        PivotMotor.setPosition(Constants.Arm.PivotLimitReverse);
+        PivotMotor.setPosition(pivotLimitReverse);
     }
+
+    // ----------------------------------------------------------------------------------------
+    // -- Commands
+    // ----------------------------------------------------------------------------------------
 
     public Command Command_SetPosition(EArmPosition position) { return Command_GoToPosition(position.Rotations); }
 
     public Command Command_GoToPosition(double armPosition)
     {
-        var pos = MathUtil.clamp(armPosition, Constants.Arm.LowerLimit, Constants.Arm.UpperLimit);
+        var pos = MathUtil.clamp(armPosition, lowerLimit, upperLimit);
         return
             run(() ->
                 {
@@ -214,7 +225,7 @@ public class Arm extends DisableSubsystem
                        {
                            double actualRotation = LeftMotor.getPosition().getValue();
                            Logger.recordOutput("Arm.Error", pos - actualRotation);
-                           return MathUtil.isNear(pos, actualRotation, Constants.Arm.ArmTolerance);
+                           return MathUtil.isNear(pos, actualRotation, armTolerance);
                        });
     }
 
@@ -224,7 +235,7 @@ public class Arm extends DisableSubsystem
 
     public Command Command_GoToPivotPosition(double position)
     {
-        var pos = MathUtil.clamp(position, Constants.Arm.PivotLimitReverse, Constants.Arm.PivotLimitForward);
+        var pos = MathUtil.clamp(position, pivotLimitReverse, pivotLimitForward);
 
         return run(() ->
                    {
@@ -234,11 +245,11 @@ public class Arm extends DisableSubsystem
             .until(() ->
                    {
                        double actualRotation = PivotMotor.getPosition().getValue();
-                       return MathUtil.isNear(pos, actualRotation, Constants.Arm.PivotTolerance);
+                       return MathUtil.isNear(pos, actualRotation, pivotTolerance);
                    });
     }
 
-    public Command Command_SetNeutralMode(NeutralModeValue mode) { return runOnce(() -> PivotMotor.setNeutralMode(mode)).ignoringDisable(true); }
+    public Command Command_SetNeutralMode(NeutralModeValue mode) { return runOnce(() -> PivotMotor.setNeutralMode(mode)).ignoringDisable(Constants.FeatureFlags.IgnoringDisabled); }
 
     public Command Command_UnstickPivot()
     {
@@ -247,6 +258,21 @@ public class Arm extends DisableSubsystem
             Command_SetPivotPosition(EPivotPosition.Stowed));
     }
 
-    public Command Command_ZeroPivotEncoder() { return runOnce(() -> PivotMotor.setPosition(Constants.Arm.PivotLimitReverse)).ignoringDisable(true); }
+    public Command Command_ZeroPivotEncoder() { return runOnce(() -> PivotMotor.setPosition(pivotLimitReverse)).ignoringDisable(Constants.FeatureFlags.IgnoringDisabled); }
+
+    public Command Command_ZeroArmEncoder() { return runOnce(() -> LeftMotor.setPosition(lowerLimit)).ignoringDisable(Constants.FeatureFlags.IgnoringDisabled); }
+
+    public Command Command_ManualArmControl()
+    {
+        return runOnce(() -> Constants.Arm.ManualArmControlTarget = LeftMotor.getPosition().getValue())
+            .andThen(run(() ->
+        {
+            double y = RobotContainer.Operator.getLeftY() * 0.001;
+            if (Math.abs(y) < 0.001) { return; }
+
+            Constants.Arm.ManualArmControlTarget = MathUtil.clamp(Constants.Arm.ManualArmControlTarget + y, lowerLimit, upperLimit);
+            LeftMotor.setControl(ClimbRequest.withPosition(Constants.Arm.ManualArmControlTarget));
+        }));
+    }
 
 }

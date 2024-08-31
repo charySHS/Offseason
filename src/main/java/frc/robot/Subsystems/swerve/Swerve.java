@@ -1,15 +1,23 @@
-package frc.robot.Subsystems;
+package frc.robot.Subsystems.swerve;
 
+import static edu.wpi.first.units.Units.Volts;
+
+import java.util.Optional;
 import java.util.function.Supplier;
 
+import com.choreo.lib.*;
+import com.choreo.lib.ChoreoTrajectory;
+import com.ctre.phoenix6.SignalLogger;
+import com.pathplanner.lib.path.PathConstraints;
 import edu.wpi.first.math.VecBuilder;
 import edu.wpi.first.math.geometry.Rotation2d;
-import org.littletonrobotics.junction.AutoLog;
+import edu.wpi.first.math.geometry.Transform2d;
+import edu.wpi.first.math.geometry.Translation2d;
+import edu.wpi.first.wpilibj2.command.sysid.SysIdRoutine;
 import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.Utils;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrain;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveDrivetrainConstants;
-import com.ctre.phoenix6.mechanisms.swerve.SwerveModule;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveModuleConstants;
 import com.ctre.phoenix6.mechanisms.swerve.SwerveRequest;
 
@@ -26,8 +34,7 @@ import edu.wpi.first.wpilibj2.command.Command;
 import edu.wpi.first.wpilibj2.command.Subsystem;
 
 import frc.robot.Limelight.LimelightHelpers;
-import frc.robot.Limelight.Limelight;
-import frc.robot.Subsystems.SwerveConstants;
+import frc.robot.Vision.Vision;
 import org.littletonrobotics.junction.inputs.LoggableInputs;
 
 /**
@@ -37,6 +44,8 @@ import org.littletonrobotics.junction.inputs.LoggableInputs;
 public class Swerve extends SwerveDrivetrain implements Subsystem
 {
     LoggableInputs AutoLog;
+
+    private final boolean disabled;
 
     private static final double SimLoopPeriod = 0.005; // 5 ms
     private Notifier simNotifier = null;
@@ -56,20 +65,84 @@ public class Swerve extends SwerveDrivetrain implements Subsystem
         Left
     }
 
+    private final SwerveRequest.SysIdSwerveTranslation TranslationCharacterization =
+        new SwerveRequest.SysIdSwerveTranslation();
+
+    private final SwerveRequest.SysIdSwerveRotation RotationCharacterization =
+        new SwerveRequest.SysIdSwerveRotation();
+
+    private final SwerveRequest.SysIdSwerveSteerGains SteerCharacterization =
+        new SwerveRequest.SysIdSwerveSteerGains();
+
     private final SwerveRequest.ApplyChassisSpeeds autoRequest = new SwerveRequest.ApplyChassisSpeeds();
 
-    public Swerve(SwerveDrivetrainConstants driveTrainConstants, double OdometryUpdateFrequency, SwerveModuleConstants... modules) {
+    // Use for testing
+    private SysIdRoutine SysIDRoutineTranslation =
+        new SysIdRoutine(
+            new SysIdRoutine.Config(
+                null,
+                Volts.of(4),
+                null,
+                (state) -> SignalLogger.writeString("State", state.toString())
+            ),
+            new SysIdRoutine.Mechanism(
+                (volts) -> setControl(TranslationCharacterization.withVolts(volts)), null, this
+            )
+        );
+
+    private final SysIdRoutine SysIDRoutineRotation =
+        new SysIdRoutine(
+            new SysIdRoutine.Config(
+                null,
+                Volts.of(4),
+                null,
+                (state) -> SignalLogger.writeString("State", state.toString())
+            ),
+            new SysIdRoutine.Mechanism(
+                (volts) -> setControl(RotationCharacterization.withVolts(volts)), null, this
+            )
+        );
+
+    private final SysIdRoutine SysIDRoutineSteer =
+        new SysIdRoutine(
+            new SysIdRoutine.Config(
+                null,
+                Volts.of(7),
+                null,
+                (state) -> SignalLogger.writeString("State", state.toString())
+            ),
+            new SysIdRoutine.Mechanism(
+                (volts) -> setControl(SteerCharacterization.withVolts(volts)), null, this
+            )
+        );
+
+    // TODO: Change this line to the routine to test
+    private final SysIdRoutine RoutineToApply = SysIDRoutineSteer;
+
+
+    public Swerve(boolean disabled, SwerveDrivetrainConstants driveTrainConstants, double OdometryUpdateFrequency, SwerveModuleConstants... modules) {
         super(driveTrainConstants, OdometryUpdateFrequency, modules);
+        this.disabled = disabled;
         configurePathPlanner();
         if (Utils.isSimulation()) {
             startSimThread();
         }
     }
-    public Swerve(SwerveDrivetrainConstants driveTrainConstants, SwerveModuleConstants... modules) {
+    public Swerve(boolean disabled, SwerveDrivetrainConstants driveTrainConstants, SwerveModuleConstants... modules) {
         super(driveTrainConstants, modules);
+        this.disabled = disabled;
         configurePathPlanner();
         if (Utils.isSimulation()) {
             startSimThread();
+        }
+    }
+
+    @Override
+    public void setControl(SwerveRequest request)
+    {
+        if (!disabled)
+        {
+            super.setControl(request);
         }
     }
 
@@ -143,11 +216,64 @@ public class Swerve extends SwerveDrivetrain implements Subsystem
         }
     }
 
+    public Command pathFindToNote(Vision vision)
+    {
+        PathConstraints constraints =
+            new PathConstraints(
+                SwerveConstants.kSpeedAt12VoltsMps -1,
+                4,
+                edu.wpi.first.math.util.Units.degreesToRadians(450),
+                edu.wpi.first.math.util.Units.degreesToRadians(540)
+            );
+
+        return AutoBuilder.pathfindToPose(
+            // current pose, path constraints, rotation
+            vision.GetNotePose(this.getState().Pose), constraints, 1, 0.0);
+    }
+
+    public Command rotationTest()
+    {
+        PathConstraints constraints =
+            new PathConstraints(
+                SwerveConstants.kSpeedAt12VoltsMps -1,
+                4,
+                edu.wpi.first.math.util.Units.degreesToRadians(450),
+                edu.wpi.first.math.util.Units.degreesToRadians(540)
+            );
+
+        return AutoBuilder.pathfindToPose(
+            this.getState()
+                .Pose
+                .rotateBy(Rotation2d.fromDegrees(90))
+                .plus(new Transform2d(new Translation2d(2, 1), Rotation2d.fromDegrees(0))),
+            constraints,
+            0,
+            0.0
+        );
+    }
+
     public Command applyRequest(Supplier<SwerveRequest> requestSupplier) {
         return run(() -> this.setControl(requestSupplier.get()));
     }
 
-
+    public Command runChoreoTrajectory(ChoreoTrajectory trajectory)
+    {
+        return Choreo.choreoSwerveCommand(
+            trajectory,
+            () -> (this.getState().Pose),
+            SwerveConstants.choreoTranslationController,
+            SwerveConstants.choreoTranslationController,
+            SwerveConstants.choreoRotationController,
+            ((ChassisSpeeds speeds) ->
+                this.setControl(new SwerveRequest.ApplyChassisSpeeds().withSpeeds(speeds)
+        )),
+            () ->
+            {
+                Optional<DriverStation.Alliance> alliance = DriverStation.getAlliance();
+                return alliance.isPresent() && alliance.get() == DriverStation.Alliance.Red;
+            },
+            this);
+    }
 
     public Command getAutoPath(String pathName) {
         return new PathPlannerAuto(pathName);
@@ -170,6 +296,16 @@ public class Swerve extends SwerveDrivetrain implements Subsystem
             updateSimState(deltaTime, RobotController.getBatteryVoltage());
         });
         simNotifier.startPeriodic(SimLoopPeriod);
+    }
+
+    public Command SysIDQuasistatic(SysIdRoutine.Direction direction)
+    {
+        return RoutineToApply.quasistatic(direction);
+    }
+
+    public Command SysIDDynamic(SysIdRoutine.Direction direction)
+    {
+        return RoutineToApply.dynamic(direction);
     }
 
     @Override

@@ -13,7 +13,7 @@ import edu.wpi.first.wpilibj.DigitalInput;
 import frc.robot.Constants;
 import friarLib3.utility.DisableSubsystem;
 
-public class Intake extends DisableSubsystem
+public class IntakeSubsystem extends DisableSubsystem
 {
     LoggableInputs AutoLog;
 
@@ -60,9 +60,9 @@ public class Intake extends DisableSubsystem
 
     public boolean GetIsFeedingNote() { return isFeedingNote; }
 
-    public Intake(boolean disabled)
+    public IntakeSubsystem(boolean enabled)
     {
-        super(disabled);
+        super(enabled);
         CreateIntakeMotor();
         CreateFeederMotor();
     }
