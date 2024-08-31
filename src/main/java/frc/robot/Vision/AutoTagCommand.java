@@ -24,24 +24,24 @@ public class AutoTagCommand
         xPID.setTolerance(0.08);
     }
 
-    @Override
-    public void initialize()
-    {
-        isShooting = false;
-        hasNote = false;
-    }
-
-    @Override
-    public void execute()
-    {
-        var name = "";
-
-        var target = Vision.GetBestTarget();
-        if (target == null)
-        {
-            var request = RobotContainer.Get().GetDefaultDriveRequest();
-            RobotContainer.Get().drivetrain.setControl(request);
-            return;
-        }
-    }
+//    @Override
+//    public void initialize()
+//    {
+//        isShooting = false;
+//        hasNote = false;
+//    }
+//
+//    @Override
+//    public void execute()
+//    {
+//        var name = "";
+//
+//        var target = Vision.GetBestTarget();
+//        if (target == null)
+//        {
+//            var request = RobotContainer.Get().GetDefaultDriveRequest();
+//            RobotContainer.Get().drivetrain.setControl(request);
+//            return;
+//        }
+//    }
 }
