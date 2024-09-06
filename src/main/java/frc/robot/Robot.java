@@ -17,6 +17,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.function.BiConsumer;
 
+import frc.robot.Vision.Vision;
 import monologue.Logged;
 import monologue.Monologue;
 import com.pathplanner.lib.commands.FollowPathCommand;
@@ -66,7 +67,7 @@ public class Robot extends LoggedRobot implements Logged {
     if (isReal())
     {
       System.out.println("Robot is real, forcing mode to REAL");
-      Logger.addDataReceiver(new WPILOGWriter("/home/lvuser.logs"));
+      Logger.addDataReceiver(new WPILOGWriter("C:\\Users\\Friarbots1 8-2023\\Desktop\\Logs"));
       Logger.addDataReceiver(new NT4PublisherNoFMS());
       new PowerDistribution(
           1, PowerDistribution.ModuleType.kRev
@@ -153,8 +154,18 @@ public class Robot extends LoggedRobot implements Logged {
       Monologue.updateAll();
     }
 
-    SmartDashboard.putNumber("Robot Yaw", RobotContainer.drivetrain.getPigeon2().getYaw().getValue());
+    Vision.Periodic();
 
     RobotContainer.periodic(Robot.defaultPeriodSecs);
+  }
+
+  /** This function is called once each time the robot enters Disabled mode. */
+  @Override
+  public void disabledInit()
+  {
+    if (Constants.DisableSubsystemsOnDisableInit)
+    {
+      if (RobotContainer.Intake != null) { RobotContainer.Intake.off(); }
+    }
   }
 }

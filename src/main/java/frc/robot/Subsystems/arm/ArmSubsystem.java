@@ -1,8 +1,9 @@
-package frc.robot.Subsystems;
+package frc.robot.Subsystems.arm;
 
 import edu.wpi.first.wpilibj2.command.Commands;
 import frc.robot.Constants;
 import frc.robot.RobotContainer;
+import frc.robot.Vision.Vision;
 import org.littletonrobotics.junction.Logger;
 import com.ctre.phoenix6.configs.*;
 import com.ctre.phoenix6.controls.*;
@@ -52,6 +53,7 @@ public class ArmSubsystem extends DisableSubsystem
     public enum EPivotPosition
     {
         Amp(0.075),
+        Intake(-0.04),
         Source(-0.237),
         Stowed(pivotLimitReverse + pivotLimitBuffer),
         ShootSpeaker(pivotLimitReverse),
@@ -63,19 +65,30 @@ public class ArmSubsystem extends DisableSubsystem
         EPivotPosition(double rotations) { Rotations = rotations; }
     }
 
+    public enum EPose
+    {
+        None,
+        Stowed,
+        Intake,
+        Amp,
+        Speaker,
+        PreClimb,
+        Source
+    }
+
     // -- Motors
 
-    private TalonFX LeftMotor;
-    private TalonFX RightMotor;
-    private TalonFX PivotMotor;
+    public TalonFX LeftMotor;
+    public TalonFX RightMotor;
+    public TalonFX PivotMotor;
 
-    private final MotionMagicExpoTorqueCurrentFOC PoseRequest =
+    public final MotionMagicExpoTorqueCurrentFOC PoseRequest =
         new MotionMagicExpoTorqueCurrentFOC(lowerLimit)
             .withSlot(0);
-    private final PositionTorqueCurrentFOC ClimbRequest =
+    public final PositionTorqueCurrentFOC ClimbRequest =
         new PositionTorqueCurrentFOC(lowerLimit)
             .withSlot(1);
-    private final MotionMagicExpoTorqueCurrentFOC PivotRequest = new MotionMagicExpoTorqueCurrentFOC(0);
+    public final MotionMagicExpoTorqueCurrentFOC PivotRequest = new MotionMagicExpoTorqueCurrentFOC(0);
 
     public ArmSubsystem(boolean enabled)
     {
@@ -275,4 +288,81 @@ public class ArmSubsystem extends DisableSubsystem
         }));
     }
 
+    public EPose GetPoseForCurrentTag()
+    {
+        var target = Vision.GetBestTarget();
+        if (target == null) { return EPose.None; }
+
+        if (target.fiducialID == 4 || target.fiducialID == 7)
+        {
+            System.out.println("SpeakerPose");
+            return EPose.Speaker;
+        }
+        else if (target.fiducialID == 5 || target.fiducialID == 6)
+        {
+            System.out.println("AmpPose");
+            return EPose.Amp;
+        }
+        else if (target.fiducialID >= 11 || target.fiducialID <= 16)
+        {
+            System.out.println("ClimbPose");
+            return EPose.PreClimb;
+        }
+
+        System.out.println("No Pose");
+        return EPose.None;
+    }
+
+    public Command Command_GoToPose(EPose pose)
+    {
+        if (pose == EPose.None) { return Commands.none(); }
+
+        if (pose == EPose.Stowed)
+        {
+            return Commands.parallel(
+                Command_SetPivotPosition(EPivotPosition.Stowed),
+                Commands.waitSeconds(0.1)
+                    .andThen(Command_SetPosition(EArmPosition.Stowed))
+            );
+        }
+
+        if (pose == EPose.Intake)
+        {
+            return Commands.parallel(
+                Command_SetPosition(EArmPosition.Stowed),
+                Command_SetPivotPosition(EPivotPosition.Intake)
+            );
+        }
+
+        if (pose == EPose.Amp)
+        {
+            return Commands.parallel(
+                Command_SetPivotPosition(EPivotPosition.Amp),
+                Commands.waitSeconds(0.1)
+                    .andThen(Command_SetPosition(EArmPosition.Amp))
+            );
+        }
+
+        if (pose == EPose.PreClimb)
+        {
+            return Commands.sequence(
+                Command_SetPosition(EArmPosition.ClimbFirstPos),
+                Command_SetPivotPosition(EPivotPosition.Climb)
+            );
+        }
+
+        if (pose == EPose.Source)
+        {
+            return Commands.sequence(
+                Command_SetPosition(EArmPosition.Source),
+                Command_SetPivotPosition(EPivotPosition.Source)
+            );
+        }
+
+        return Commands.none();
+    }
+
+    public Command Command_AutoPose() { return Command_GoToPose(GetPoseForCurrentTag()); }
+
+    public Command Command_Climb() { return runOnce(() -> LeftMotor.setControl(ClimbRequest.withPosition(lowerLimit))); }
 }
